@@ -3,7 +3,7 @@ torchvision==0.18.0
 fastapi==0.111.0
 uvicorn==0.30.0
 streamlit==1.35.0
-pytorch-grad-cam==1.5.0
+grad-cam==1.4.8
 pillow==10.3.0
 scikit-learn==1.5.0
 numpy==1.26.4

@@ -1,0 +1,55 @@
+model/weights/
+data/
+__pycache__/
+*.pyc
+*.pth
+.env
+.DS_Store
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Python
+.mypy_cache/
+.ruff_cache/
+*.egg
+pip-log.txt
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# Streamlit
+.streamlit/
+
+# ML Models
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.onnx
+
+# OS
+Thumbs.db
+
+# Cache
+.cache/

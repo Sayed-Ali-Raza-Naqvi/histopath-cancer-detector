@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir -p {api,model,app/pages,data}
+mkdir -p {api,model,app/pages,data,assets}
 
 touch api/{main.py,inference.py,gradcam.py}
 touch model/{train.py,evaluate.py,dataset.py}

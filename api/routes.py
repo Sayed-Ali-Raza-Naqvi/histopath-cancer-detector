@@ -54,6 +54,11 @@ def numpy_to_base64(image_array: np.ndarray) -> str:
     return base64.b64encode(buffer.read()).decode("utf-8")
 
 
+@router.get("/")
+def root():
+    return {"message": "Histopathology Cancer Detector API is running. Visit /docs for the API documentation."}
+
+
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     return HealthResponse(

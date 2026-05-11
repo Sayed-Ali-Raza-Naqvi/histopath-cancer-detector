@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,10 +7,11 @@ from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from PIL import Image
 
+TARGET_SIZE = (96, 96)
+
 
 def load_model(weights_path: str, device: torch.device):
     model = models.efficientnet_b0(weights=None)
-
 
     in_features = model.classifier[1].in_features
     model.classifier = nn.Sequential(
@@ -21,39 +23,69 @@ def load_model(weights_path: str, device: torch.device):
     model.to(device)
     model.eval()
 
+    for param in model.parameters():
+        param.requires_grad = True
+
     return model
 
 
-def get_gradcam_heatmap(
-    model: nn.Module,
-    image_tensor: torch.Tensor,
-    raw_image: np.ndarray,
-    device: torch.device
-) -> np.ndarray:
-    target_layer = [model.features[-1][0]]
-
-    cam = GradCAM(model=model, target_layers=target_layer)
-    grayscale_cam = cam(
-        input_tensor=image_tensor.unsqueeze(0).to(device),
-        targets=None
-    )
-    grayscale_cam = grayscale_cam[0]
-
-    raw_float = raw_image.astype(np.float32) / 255.0
-    heatmap = show_cam_on_image(raw_float, grayscale_cam, use_rgb=True)
+# def get_gradcam_heatmap(
+#     model: nn.Module,
+#     image_tensor: torch.Tensor,
+#     raw_image: np.ndarray,
+#     device: torch.device
+# ) -> np.ndarray:
+#     target_layer = [model.features[-1]]
+#     cam = GradCAM(model=model, target_layers=target_layer)
+#     grayscale_cam = cam(
+#         input_tensor=image_tensor.unsqueeze(0).to(device),
+#         targets=None
+#     )
+#     grayscale_cam = grayscale_cam[0]
+#     raw_float = raw_image.astype(np.float32) / 255.0
+#     heatmap = show_cam_on_image(raw_float, grayscale_cam, use_rgb=True)
     
-    return heatmap
+#     return heatmap
+
+
+def get_gradcam_heatmap(
+    model:        nn.Module,
+    image_tensor: torch.Tensor,
+    raw_image:    np.ndarray,
+    device:       torch.device
+) -> np.ndarray:
+    h, w = raw_image.shape[:2]
+
+    target_layer  = [model.features[-1][0]]
+    cam           = GradCAM(model=model, target_layers=target_layer)
+    grayscale_cam = cam(
+        input_tensor = image_tensor.unsqueeze(0).to(device),
+        targets      = None
+    )[0]
+
+    grayscale_cam = np.float32(grayscale_cam)
+    grayscale_cam = np.clip(grayscale_cam, 0, 1)
+    grayscale_cam = cv2.resize(grayscale_cam, (w, h))
+
+    heatmap_color = cv2.applyColorMap(np.uint8(255 * grayscale_cam), cv2.COLORMAP_JET)
+    heatmap_color = cv2.cvtColor(heatmap_color, cv2.COLOR_BGR2RGB)
+
+    overlay = cv2.addWeighted(np.uint8(raw_image), 0.5, heatmap_color, 0.5, 0)
+    
+    return overlay
 
 
 def run_inference_with_gradcam(
-        pil_image: Image.Image,
-        model: nn.Module,
-        transform,
-        device: torch.device,
-        threshold: float = 0.4041
+    pil_image: Image.Image,
+    model: nn.Module,
+    transform,
+    device: torch.device,
+    threshold: float = 0.4041
 ):
-    raw_image = np.array(pil_image.convert("RGB"))
-    image_tensor = transform(pil_image.convert("RGB"))
+    pil_image = pil_image.convert("RGB")
+    pil_image = pil_image.resize((96, 96), Image.BILINEAR)
+    raw_image = np.array(pil_image)
+    image_tensor = transform(pil_image)
 
     with torch.no_grad():
         output = model(image_tensor.unsqueeze(0).to(device))
@@ -68,5 +100,5 @@ def run_inference_with_gradcam(
         "tumor_probability": round(probability, 4),
         "confidence": round(confidence, 4),
         "heatmap": heatmap,
-        "raw_image": raw_image
+        "raw_image": raw_image,
     }

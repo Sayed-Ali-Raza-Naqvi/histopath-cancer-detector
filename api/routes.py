@@ -104,6 +104,8 @@ async def predict(file: UploadFile = File(...)):
 
     try:
         image = Image.open(io.BytesIO(contents)).convert("RGB")
+        print(f"API received image size: {image.size}", flush=True)
+
     except Exception:
         raise HTTPException(
             status_code = 422,

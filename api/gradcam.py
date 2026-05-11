@@ -29,50 +29,23 @@ def load_model(weights_path: str, device: torch.device):
     return model
 
 
-# def get_gradcam_heatmap(
-#     model: nn.Module,
-#     image_tensor: torch.Tensor,
-#     raw_image: np.ndarray,
-#     device: torch.device
-# ) -> np.ndarray:
-#     target_layer = [model.features[-1]]
-#     cam = GradCAM(model=model, target_layers=target_layer)
-#     grayscale_cam = cam(
-#         input_tensor=image_tensor.unsqueeze(0).to(device),
-#         targets=None
-#     )
-#     grayscale_cam = grayscale_cam[0]
-#     raw_float = raw_image.astype(np.float32) / 255.0
-#     heatmap = show_cam_on_image(raw_float, grayscale_cam, use_rgb=True)
-    
-#     return heatmap
-
-
 def get_gradcam_heatmap(
-    model:        nn.Module,
+    model: nn.Module,
     image_tensor: torch.Tensor,
-    raw_image:    np.ndarray,
-    device:       torch.device
+    raw_image: np.ndarray,
+    device: torch.device
 ) -> np.ndarray:
-    h, w = raw_image.shape[:2]
-
-    target_layer  = [model.features[-1][0]]
-    cam           = GradCAM(model=model, target_layers=target_layer)
+    target_layer = [model.features[-1]]
+    cam = GradCAM(model=model, target_layers=target_layer)
     grayscale_cam = cam(
-        input_tensor = image_tensor.unsqueeze(0).to(device),
-        targets      = None
-    )[0]
-
-    grayscale_cam = np.float32(grayscale_cam)
-    grayscale_cam = np.clip(grayscale_cam, 0, 1)
-    grayscale_cam = cv2.resize(grayscale_cam, (w, h))
-
-    heatmap_color = cv2.applyColorMap(np.uint8(255 * grayscale_cam), cv2.COLORMAP_JET)
-    heatmap_color = cv2.cvtColor(heatmap_color, cv2.COLOR_BGR2RGB)
-
-    overlay = cv2.addWeighted(np.uint8(raw_image), 0.5, heatmap_color, 0.5, 0)
+        input_tensor=image_tensor.unsqueeze(0).to(device),
+        targets=None
+    )
+    grayscale_cam = grayscale_cam[0]
+    raw_float = raw_image.astype(np.float32) / 255.0
+    heatmap = show_cam_on_image(raw_float, grayscale_cam, use_rgb=True)
     
-    return overlay
+    return heatmap
 
 
 def run_inference_with_gradcam(

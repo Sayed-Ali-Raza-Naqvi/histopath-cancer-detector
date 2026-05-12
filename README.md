@@ -92,7 +92,7 @@ pip install -r requirements.txt
 
 ---
 
-## ▶ Running the API
+##  Running the API
 
 ```bash
 .\.venv\Scripts\Activate.ps1

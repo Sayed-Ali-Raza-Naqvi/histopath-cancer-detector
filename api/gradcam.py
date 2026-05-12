@@ -42,8 +42,27 @@ def get_gradcam_heatmap(
         targets=None
     )
     grayscale_cam = grayscale_cam[0]
+
+    # Ensure the raw image and CAM map match in size for overlay.
+    cam_h, cam_w = grayscale_cam.shape
+    print(
+        f"Grad-CAM shapes: raw={raw_image.shape} cam={grayscale_cam.shape}",
+        flush=True
+    )
+    if raw_image.shape[0] != cam_h or raw_image.shape[1] != cam_w:
+        raw_image = cv2.resize(raw_image, (cam_w, cam_h), interpolation=cv2.INTER_LINEAR)
+        print(
+            f"Resized raw image to: {raw_image.shape}",
+            flush=True
+        )
+
     raw_float = raw_image.astype(np.float32) / 255.0
-    heatmap = show_cam_on_image(raw_float, grayscale_cam, use_rgb=True)
+    try:
+        heatmap = show_cam_on_image(raw_float, grayscale_cam, use_rgb=True)
+    except Exception as e:
+        raise RuntimeError(
+            f"show_cam_on_image failed: raw={raw_image.shape} cam={grayscale_cam.shape} error={e}"
+        )
     
     return heatmap
 
@@ -56,9 +75,12 @@ def run_inference_with_gradcam(
     threshold: float = 0.4041
 ):
     pil_image = pil_image.convert("RGB")
-    pil_image = pil_image.resize((96, 96), Image.BILINEAR)
-    raw_image = np.array(pil_image)
-    image_tensor = transform(pil_image)
+    original_size = pil_image.size
+    print(f"Original image size: {original_size}", flush=True)
+    
+    pil_image_resized = pil_image.resize((96, 96), Image.BILINEAR)
+    raw_image = np.array(pil_image_resized)
+    image_tensor = transform(pil_image_resized)
 
     with torch.no_grad():
         output = model(image_tensor.unsqueeze(0).to(device))

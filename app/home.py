@@ -86,13 +86,30 @@ if uploaded_file is not None:
     image_bytes = uploaded_file.read()
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     content_type = "image/png" if uploaded_file.name.lower().endswith("png") else "image/jpeg"
+    
+    original_size = image.size
+    
+    # Resize for display if needed (keep aspect ratio reasonable)
+    display_image = image.copy()
+    if max(display_image.size) > 512:
+        display_image.thumbnail((512, 512), Image.BILINEAR)
+
+    # Prepare a 96x96 image for inference to keep the API input consistent
+    api_image = image.copy()
+    if api_image.size != (96, 96):
+        api_image = api_image.resize((96, 96), Image.BILINEAR)
+    api_buffer = io.BytesIO()
+    api_format = "PNG" if content_type == "image/png" else "JPEG"
+    api_image.save(api_buffer, format=api_format)
+    api_image_bytes = api_buffer.getvalue()
 
     col1, col2 = st.columns([1, 2])
 
     with col1:
         st.subheader("Uploaded Patch")
-        st.image(image, width=250)
-        st.caption(f"Size: {image.size[0]}×{image.size[1]} px")
+        st.image(display_image, use_column_width=False, width=250)
+        st.caption(f"Original Size: {original_size[0]}×{original_size[1]} px")
+        st.caption("Sent to the API as a 96×96 resized patch for inference.")
     
     with col2:
         st.subheader("Analysis")
@@ -100,7 +117,7 @@ if uploaded_file is not None:
 
         if analyze:
             with st.spinner("Running inference and generating Grad-CAM..."):
-                response = call_predict_api(image_bytes, uploaded_file.name, content_type)
+                response = call_predict_api(api_image_bytes, uploaded_file.name, content_type)
 
             if response is None:
                 st.error(
@@ -150,9 +167,9 @@ if uploaded_file is not None:
                 c1, c2 = st.columns(2)
 
                 with c1:
-                    st.image(image, caption="Original Patch", width=250)
+                    st.image(display_image, caption="Original Patch", use_column_width=False, width=300)
                 with c2:
-                    st.image(gradcam_image, caption="Grad-CAM Heatmap", width=250)
+                    st.image(gradcam_image, caption="Grad-CAM Heatmap", use_column_width=False, width=300)
                 
                 st.divider()
 

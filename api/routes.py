@@ -114,6 +114,11 @@ async def predict(file: UploadFile = File(...)):
 
     validate_image_dimensions(image)
 
+    # Normalize all direct API inputs to the model's expected patch size.
+    if image.size != (96, 96):
+        image = image.resize((96, 96), Image.BILINEAR)
+        print(f"API resized image for inference: {image.size}", flush=True)
+
     if "model" not in model_store:
         raise HTTPException(
             status_code = 503,
